@@ -19,6 +19,130 @@
             --glass-border: rgba(255, 255, 255, 0.1);
         }
 
+        /* Emotion Filter Panel */
+        .filter-panel {
+            position: absolute;
+            top: 120px;
+            right: 2rem;
+            pointer-events: auto;
+            background: var(--glass-bg);
+            padding: 1rem;
+            border-radius: 12px;
+            border: 1px solid var(--glass-border);
+            backdrop-filter: blur(10px);
+            width: 220px;
+            z-index: 20;
+        }
+
+        .filter-title {
+            color: var(--metallic-gold);
+            font-size: 0.9rem;
+            margin-bottom: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .emotion-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            width: 100%;
+            padding: 0.6rem 0.8rem;
+            margin-bottom: 0.4rem;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid transparent;
+            border-radius: 8px;
+            color: var(--text-light);
+            font-family: 'Noto Serif SC', serif;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: left;
+        }
+
+        .emotion-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--glass-border);
+        }
+
+        .emotion-btn.active {
+            border-color: var(--metallic-gold);
+            box-shadow: 0 0 10px rgba(197, 160, 89, 0.3);
+        }
+
+        .emotion-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .emotion-clear {
+            margin-top: 0.5rem;
+            width: 100%;
+            padding: 0.5rem;
+            background: transparent;
+            border: 1px dashed var(--glass-border);
+            border-radius: 8px;
+            color: #888;
+            font-family: 'Noto Serif SC', serif;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .emotion-clear:hover {
+            color: var(--text-light);
+            border-color: var(--text-light);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        /* Emotion Tag Selector in Form */
+        .emotion-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .emotion-tag {
+            padding: 0.4rem 0.8rem;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid #444;
+            border-radius: 20px;
+            color: #aaa;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        .emotion-tag:hover {
+            border-color: var(--metallic-gold);
+            color: var(--metallic-gold);
+        }
+
+        .emotion-tag.selected {
+            background: rgba(197, 160, 89, 0.2);
+            border-color: var(--metallic-gold);
+            color: var(--metallic-gold);
+            box-shadow: 0 0 8px rgba(197, 160, 89, 0.2);
+        }
+
+        .filter-status {
+            margin-top: 0.8rem;
+            padding-top: 0.8rem;
+            border-top: 1px solid var(--glass-border);
+            font-size: 0.75rem;
+            color: #888;
+        }
+
+        .filter-status .highlight {
+            color: var(--metallic-gold);
+            font-weight: bold;
+        }
+
         * {
             box-sizing: border-box;
             margin: 0;
@@ -331,8 +455,8 @@
     <script type="importmap">
         {
             "imports": {
-                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
             }
         }
     </script>
@@ -369,6 +493,21 @@
                     </svg>
                     添加记忆节点
                 </button>
+            </div>
+        </div>
+
+        <!-- Emotion Filter Panel -->
+        <div class="filter-panel" id="filter-panel">
+            <div class="filter-title">
+                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                </svg>
+                情绪滤镜
+            </div>
+            <div id="emotion-buttons"></div>
+            <button class="emotion-clear" id="clear-filter-btn">清除滤镜 · 查看完整人生</button>
+            <div class="filter-status" id="filter-status">
+                当前显示：<span class="highlight" id="filter-count">全部</span> 记忆
             </div>
         </div>
 
@@ -413,6 +552,10 @@
                     <label>描述</label>
                     <textarea id="event-desc" rows="3" placeholder="这一刻发生了什么..."></textarea>
                 </div>
+                <div class="form-group">
+                    <label>心情标签</label>
+                    <div class="emotion-tags" id="emotion-tags"></div>
+                </div>
                 <button type="submit" class="submit-btn" id="submit-btn">注入银河</button>
             </form>
         </div>
@@ -435,26 +578,116 @@
         import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
         import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 
-        // --- Configuration & State ---
-        const CONFIG = {
+        // --- Emotion Configuration ---
+        const EMOTIONS = {
+            brave: {
+                name: '勇敢',
+                color: '#FF6B35',
+                particleColors: {
+                    inside: new THREE.Color('#FF6B35'),
+                    outside: new THREE.Color('#8B2500')
+                },
+                speed: 0.5,
+                fogColor: 0x1a0a00,
+                fogDensity: 0.02,
+                bloomStrength: 1.8,
+                description: '滚烫的勇气，照亮前行'
+            },
+            miss: {
+                name: '想念',
+                color: '#6B8EFB',
+                particleColors: {
+                    inside: new THREE.Color('#6B8EFB'),
+                    outside: new THREE.Color('#1a237e')
+                },
+                speed: 0.08,
+                fogColor: 0x050a1a,
+                fogDensity: 0.018,
+                bloomStrength: 1.0,
+                description: '温柔的思念，缓缓流淌'
+            },
+            journey: {
+                name: '远行',
+                color: '#4CAF50',
+                particleColors: {
+                    inside: new THREE.Color('#66BB6A'),
+                    outside: new THREE.Color('#1B5E20')
+                },
+                speed: 0.35,
+                fogColor: 0x0a1a0a,
+                fogDensity: 0.012,
+                bloomStrength: 1.4,
+                description: '向着远方，自在如风'
+            },
+            warm: {
+                name: '温暖',
+                color: '#FFB74D',
+                particleColors: {
+                    inside: new THREE.Color('#FFD54F'),
+                    outside: new THREE.Color('#E65100')
+                },
+                speed: 0.15,
+                fogColor: 0x1a1400,
+                fogDensity: 0.015,
+                bloomStrength: 1.6,
+                description: '柔软的暖意，包裹心房'
+            },
+            peace: {
+                name: '宁静',
+                color: '#80DEEA',
+                particleColors: {
+                    inside: new THREE.Color('#80DEEA'),
+                    outside: new THREE.Color('#006064')
+                },
+                speed: 0.1,
+                fogColor: 0x05151a,
+                fogDensity: 0.02,
+                bloomStrength: 1.1,
+                description: '心如止水，岁月静好'
+            },
+            growth: {
+                name: '成长',
+                color: '#CE93D8',
+                particleColors: {
+                    inside: new THREE.Color('#E1BEE7'),
+                    outside: new THREE.Color('#4A148C')
+                },
+                speed: 0.25,
+                fogColor: 0x10051a,
+                fogDensity: 0.014,
+                bloomStrength: 1.5,
+                description: '拔节生长，向上绽放'
+            }
+        };
+
+        const DEFAULT_CONFIG = {
             particleCount: 2000,
             galaxyRadius: 50,
             spiralArms: 3,
             armSpread: 0.5,
             particleSize: 0.3,
             colors: {
-                inside: new THREE.Color('#D4AF37'), // Gold
-                outside: new THREE.Color('#354A3D') // Matte Green
-            }
+                inside: new THREE.Color('#D4AF37'),
+                outside: new THREE.Color('#354A3D')
+            },
+            speed: 0.2,
+            fogColor: 0x05070A,
+            fogDensity: 0.015,
+            bloomStrength: 1.2
         };
+
+        const CONFIG = { ...DEFAULT_CONFIG };
 
         const STATE = {
             isFlowing: true,
-            speed: 0.2,
-            targetSpeed: 0.2,
-            interactionMode: 'none', // none, rotate, zoom
+            speed: DEFAULT_CONFIG.speed,
+            targetSpeed: DEFAULT_CONFIG.speed,
+            interactionMode: 'none',
             events: [],
-            handPresent: false
+            handPresent: false,
+            currentFilter: null,
+            originalColors: null,
+            selectedEmotionTag: null
         };
 
         // --- SCENE SETUP ---
@@ -494,7 +727,9 @@
         let material = null;
         let points = null;
 
-        function generateGalaxy() {
+        function generateGalaxy(customColors = null) {
+            const colorsConfig = customColors || CONFIG.colors;
+
             if (points !== null) {
                 geometry.dispose();
                 material.dispose();
@@ -505,12 +740,11 @@
             const positions = new Float32Array(CONFIG.particleCount * 3);
             const colors = new Float32Array(CONFIG.particleCount * 3);
             const sizes = new Float32Array(CONFIG.particleCount);
-            const randomness = new Float32Array(CONFIG.particleCount * 3); // For movement
+            const randomness = new Float32Array(CONFIG.particleCount * 3);
 
             for (let i = 0; i < CONFIG.particleCount; i++) {
                 const i3 = i * 3;
 
-                // Spiral logic
                 const radius = Math.random() * CONFIG.galaxyRadius;
                 const spinAngle = radius * CONFIG.spiralArms;
                 const branchAngle = (i % CONFIG.spiralArms) / CONFIG.spiralArms * Math.PI * 2;
@@ -520,26 +754,22 @@
                 const randomZ = Math.pow(Math.random(), 3) * (Math.random() < 0.5 ? 1 : -1) * CONFIG.armSpread * radius;
 
                 positions[i3] = Math.cos(branchAngle + spinAngle) * radius + randomX;
-                positions[i3 + 1] = randomY * 2; // Flat galaxy, bit of height
+                positions[i3 + 1] = randomY * 2;
                 positions[i3 + 2] = Math.sin(branchAngle + spinAngle) * radius + randomZ;
 
-                // Color mixing
-                const mixedColor = CONFIG.colors.inside.clone();
-                mixedColor.lerp(CONFIG.colors.outside, radius / CONFIG.galaxyRadius);
+                const mixedColor = colorsConfig.inside.clone();
+                mixedColor.lerp(colorsConfig.outside, radius / CONFIG.galaxyRadius);
 
-                // Add some "Galaxy" blues/purples randomly
-                if (Math.random() > 0.8) {
-                    mixedColor.offsetHSL(0.5, 0, 0); // Shift to blue/purple
+                if (!customColors && Math.random() > 0.8) {
+                    mixedColor.offsetHSL(0.5, 0, 0);
                 }
 
                 colors[i3] = mixedColor.r;
                 colors[i3 + 1] = mixedColor.g;
                 colors[i3 + 2] = mixedColor.b;
 
-                // Size variation
-                sizes[i] = Math.random() * 2.0 + 0.5; // Increased from 0.5 and 0.1 for visibility
+                sizes[i] = Math.random() * 2.0 + 0.5;
 
-                // Store randomness for animation
                 randomness[i3] = randomX;
                 randomness[i3 + 1] = randomY;
                 randomness[i3 + 2] = randomZ;
@@ -550,7 +780,6 @@
             geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
             geometry.setAttribute('aRandomness', new THREE.BufferAttribute(randomness, 3));
 
-            // Custom Shader Material for glowing particles
             material = new THREE.ShaderMaterial({
                 depthWrite: false,
                 blending: THREE.AdditiveBlending,
@@ -569,7 +798,6 @@
                     void main() {
                         vec3 pos = position;
                         
-                        // Subtle breathing effect
                         float slowTime = uTime * 0.5;
                         pos.x += cos(slowTime + aRandomness.x * 10.0) * 0.1;
                         pos.z += sin(slowTime + aRandomness.z * 10.0) * 0.1;
@@ -584,7 +812,6 @@
                 fragmentShader: `
                     varying vec3 vColor;
                     void main() {
-                        // Circular particle
                         float strength = distance(gl_PointCoord, vec2(0.5));
                         strength = 1.0 - strength;
                         strength = pow(strength, 3.0);
@@ -601,34 +828,173 @@
 
         generateGalaxy();
 
+        // --- EMOTION FILTER LOGIC ---
+        function applyEmotionFilter(emotionKey) {
+            const emotion = EMOTIONS[emotionKey];
+            if (!emotion) return;
+
+            if (STATE.currentFilter === emotionKey) {
+                clearEmotionFilter();
+                return;
+            }
+
+            STATE.currentFilter = emotionKey;
+
+            generateGalaxy(emotion.particleColors);
+
+            STATE.targetSpeed = emotion.speed;
+            scene.fog.color.setHex(emotion.fogColor);
+            scene.fog.density = emotion.fogDensity;
+            bloomPass.strength = emotion.bloomStrength;
+
+            filterEventsByEmotion(emotionKey);
+
+            updateFilterUI(emotionKey);
+        }
+
+        function clearEmotionFilter() {
+            STATE.currentFilter = null;
+
+            generateGalaxy(DEFAULT_CONFIG.colors);
+
+            STATE.targetSpeed = DEFAULT_CONFIG.speed;
+            scene.fog.color.setHex(DEFAULT_CONFIG.fogColor);
+            scene.fog.density = DEFAULT_CONFIG.fogDensity;
+            bloomPass.strength = DEFAULT_CONFIG.bloomStrength;
+
+            restoreAllEvents();
+
+            updateFilterUI(null);
+        }
+
+        function filterEventsByEmotion(emotionKey) {
+            const emotion = EMOTIONS[emotionKey];
+            let visibleCount = 0;
+
+            eventGroup.children.forEach(star => {
+                if (star.userData.isEvent) {
+                    const eventEmotion = star.userData.data.emotion;
+                    const light = star.userData.light;
+
+                    if (eventEmotion === emotionKey) {
+                        star.visible = true;
+                        star.material.opacity = 1;
+                        star.material.transparent = false;
+                        if (star.userData.ring) {
+                            star.userData.ring.visible = true;
+                            star.userData.ring.material.opacity = 0.6;
+                        }
+                        if (light) light.visible = true;
+                        visibleCount++;
+                    } else {
+                        star.visible = true;
+                        star.material.opacity = 0.15;
+                        star.material.transparent = true;
+                        if (star.userData.ring) {
+                            star.userData.ring.visible = true;
+                            star.userData.ring.material.opacity = 0.1;
+                        }
+                        if (light) light.visible = false;
+                    }
+                }
+            });
+
+            document.getElementById('filter-count').innerHTML =
+                `<span class="highlight">${visibleCount}</span> 段 ${emotion.name}的记忆`;
+        }
+
+        function restoreAllEvents() {
+            eventGroup.children.forEach(star => {
+                if (star.userData.isEvent) {
+                    star.visible = true;
+                    star.material.opacity = 1;
+                    star.material.transparent = false;
+                    if (star.userData.ring) {
+                        star.userData.ring.visible = true;
+                        star.userData.ring.material.opacity = 0.6;
+                    }
+                    if (star.userData.light) star.userData.light.visible = true;
+                }
+            });
+
+            document.getElementById('filter-count').innerHTML =
+                `<span class="highlight">全部</span> 记忆`;
+        }
+
+        function updateFilterUI(activeEmotion) {
+            const buttons = document.querySelectorAll('.emotion-btn');
+            buttons.forEach(btn => {
+                const emotion = btn.dataset.emotion;
+                if (emotion === activeEmotion) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+        }
+
+        // --- UI INITIALIZATION ---
+        function initEmotionUI() {
+            const buttonsContainer = document.getElementById('emotion-buttons');
+            const tagsContainer = document.getElementById('emotion-tags');
+
+            Object.keys(EMOTIONS).forEach(key => {
+                const emotion = EMOTIONS[key];
+
+                const btn = document.createElement('button');
+                btn.className = 'emotion-btn';
+                btn.dataset.emotion = key;
+                btn.innerHTML = `
+                    <span class="emotion-dot" style="background: ${emotion.color}; box-shadow: 0 0 8px ${emotion.color};"></span>
+                    <span>${emotion.name}</span>
+                `;
+                btn.addEventListener('click', () => applyEmotionFilter(key));
+                buttonsContainer.appendChild(btn);
+
+                const tag = document.createElement('button');
+                tag.className = 'emotion-tag';
+                tag.type = 'button';
+                tag.dataset.emotion = key;
+                tag.textContent = emotion.name;
+                tag.addEventListener('click', () => selectEmotionTag(key, tag));
+                tagsContainer.appendChild(tag);
+            });
+
+            document.getElementById('clear-filter-btn').addEventListener('click', clearEmotionFilter);
+        }
+
+        function selectEmotionTag(key, tagElement) {
+            document.querySelectorAll('.emotion-tag').forEach(t => t.classList.remove('selected'));
+
+            if (STATE.selectedEmotionTag === key) {
+                STATE.selectedEmotionTag = null;
+            } else {
+                STATE.selectedEmotionTag = key;
+                tagElement.classList.add('selected');
+            }
+        }
+
         // --- LIFE EVENTS (Special Particles) ---
         const eventGroup = new THREE.Group();
         scene.add(eventGroup);
 
         function addLifeEventToGalaxy(data, dominatColor) {
-            // Calculate a position on the outer edge or next "step" of the spiral
-            // For simplicity, we place them randomly on an imaginary timeline (radius)
-            // Ideally, time = radius distance from center.
-
             const count = STATE.events.length;
-            const radius = 10 + (count * 5); // Growing outwards
-            const angle = count * 0.5; // Spiral out
+            const radius = 10 + (count * 5);
+            const angle = count * 0.5;
 
             const x = Math.cos(angle) * radius;
             const z = Math.sin(angle) * radius;
             const y = (Math.random() - 0.5) * 5;
 
-            // Create a "Star" mesh - Increased Radius to 2.5
             const starGeo = new THREE.SphereGeometry(2.5, 32, 32);
             const starMat = new THREE.MeshBasicMaterial({
                 color: dominatColor || 0xFFFFFF,
                 toneMapped: false
             });
-            // toneMapped false lets it glow very bright with bloom
             const star = new THREE.Mesh(starGeo, starMat);
             star.position.set(x, y, z);
 
-            // Add a "Halo" Ring
             const ringGeo = new THREE.RingGeometry(3.0, 3.2, 32);
             const ringMat = new THREE.MeshBasicMaterial({
                 color: dominatColor || 0xFFFFFF,
@@ -638,18 +1004,23 @@
                 toneMapped: false
             });
             const ring = new THREE.Mesh(ringGeo, ringMat);
-            ring.lookAt(0, 0, 0); // Face center roughly
+            ring.lookAt(0, 0, 0);
             star.add(ring);
 
-            // Add Light
             const light = new THREE.PointLight(dominatColor || 0xFFFFFF, 5, 40);
             light.position.set(x, y, z);
             scene.add(light);
 
-            star.userData = { isEvent: true, data: data, ring: ring };
+            star.userData = { isEvent: true, data: data, ring: ring, light: light };
             eventGroup.add(star);
 
-            // Camera focus animation could go here
+            if (STATE.currentFilter && data.emotion !== STATE.currentFilter) {
+                star.material.opacity = 0.15;
+                star.material.transparent = true;
+                ring.material.opacity = 0.1;
+                light.visible = false;
+            }
+
             return star;
         }
 
@@ -900,33 +1271,36 @@
             const date = document.getElementById('event-date').value;
             const desc = document.getElementById('event-desc').value;
             const fileInput = document.getElementById('event-file');
+            const emotion = STATE.selectedEmotionTag;
 
             if (fileInput.files && fileInput.files[0]) {
                 const file = fileInput.files[0];
                 const isVideo = file.type.startsWith('video');
-                // Use ObjectURL for better performance (especially for videos)
                 const mediaSrc = URL.createObjectURL(file);
 
                 const data = {
-                    title, date, desc,
+                    title, date, desc, emotion,
                     mediaType: isVideo ? 'video' : 'image',
                     src: mediaSrc
                 };
 
+                const emotionColor = emotion ? EMOTIONS[emotion].color : null;
+
                 if (isVideo) {
-                    // For video, use a distinct Neon Cyan color to contrast
-                    addLifeEventToGalaxy(data, new THREE.Color('#00F0FF'));
+                    const videoColor = emotionColor || '#00F0FF';
+                    addLifeEventToGalaxy(data, new THREE.Color(videoColor));
                     STATE.events.push(data);
 
                     modal.classList.remove('active');
                     btn.innerText = "注入银河";
                     form.reset();
+                    STATE.selectedEmotionTag = null;
+                    document.querySelectorAll('.emotion-tag').forEach(t => t.classList.remove('selected'));
                 } else {
-                    // For image, we extract color
                     const img = new Image();
                     img.src = mediaSrc;
                     img.onload = () => {
-                        const color = extractColor(img);
+                        const color = emotionColor || extractColor(img);
 
                         addLifeEventToGalaxy(data, new THREE.Color(color));
                         STATE.events.push(data);
@@ -934,6 +1308,8 @@
                         modal.classList.remove('active');
                         btn.innerText = "注入银河";
                         form.reset();
+                        STATE.selectedEmotionTag = null;
+                        document.querySelectorAll('.emotion-tag').forEach(t => t.classList.remove('selected'));
                     };
                 }
             }
@@ -971,6 +1347,8 @@
             const vid = document.getElementById('card-video');
             vid.pause();
         }
+
+        initEmotionUI();
 
         // Window resize
         window.addEventListener('resize', () => {
